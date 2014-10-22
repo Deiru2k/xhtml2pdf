@@ -15,7 +15,7 @@
 # limitations under the License.
 
 import xhtml2pdf.pisa as pisa
-import StringIO
+import io
 
 import logging
 
@@ -31,7 +31,7 @@ class Filter(object):
         script_name = environ.get('SCRIPT_NAME', '')
         path_info = environ.get('PATH_INFO', '')
         sent = []
-        written_response = StringIO.StringIO()
+        written_response = io.StringIO()
 
         def replacement_start_response(status, headers, exc_info=None):
             if not self.should_filter(status, headers):
@@ -77,7 +77,7 @@ class PisaMiddleware(HTMLFilter):
     def filter(self, script_name, path_info, environ, status, headers, body):
         topdf = environ.get("pisa.topdf", "")
         if topdf:
-            dst = StringIO.StringIO()
+            dst = io.StringIO()
             pisa.CreatePDF(body, dst, show_error_as_pdf=True)
             headers = [
                 ("content-type", "application/pdf"),

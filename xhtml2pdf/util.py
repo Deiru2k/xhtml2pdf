@@ -4,7 +4,7 @@ from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT, TA_JUSTIFY
 from reportlab.lib.units import inch, cm
 import base64
 try:
-    import httplib
+    import http.client
 except ImportError:
     import http.client as httplib
 import logging
@@ -17,13 +17,13 @@ import string
 import sys
 import tempfile
 import types
-import urllib
+import urllib.request, urllib.parse, urllib.error
 try:
-    import urllib2
+    import urllib.request, urllib.error, urllib.parse
 except ImportError:
     import urllib.request as urllib2
 try:
-    import urlparse
+    import urllib.parse
 except ImportError:
     import urllib.parse as urlparse
 
@@ -53,10 +53,10 @@ REPORTLAB22 = _reportlab_version >= (2, 2)
 log = logging.getLogger("xhtml2pdf")
 
 try:
-    import cStringIO as io
+    import io as io
 except:
     try:
-        import StringIO as io
+        import io as io
     except ImportError:
         import io
 
@@ -102,7 +102,7 @@ class memoized(object):
     def __call__(self, *args, **kwargs):
         # Make sure the following line is not actually slower than what you're
         # trying to memoize
-        args_plus = tuple(kwargs.iteritems())
+        args_plus = tuple(kwargs.items())
         key = (args, args_plus)
         try:
             if key not in self.cache:
@@ -131,7 +131,7 @@ def ErrorMsg():
 
 
 def toList(value):
-    if type(value) not in (types.ListType, types.TupleType):
+    if type(value) not in (list, tuple):
         return [value]
     return list(value)
 
@@ -223,11 +223,11 @@ def getSize(value, relative=0, base=None, default=0.0):
         original = value
         if value is None:
             return relative
-        elif type(value) is types.FloatType:
+        elif type(value) is float:
             return value
         elif isinstance(value, int):
             return float(value)
-        elif type(value) in (types.TupleType, types.ListType):
+        elif type(value) in (tuple, list):
             value = "".join(value)
         value = str(value).strip().lower().replace(",", ".")
         if value[-2:] == 'cm':
@@ -545,17 +545,17 @@ class pisaFileObject:
 
         else:
             # Check if we have an external scheme
-            if basepath and not urlparse.urlparse(uri).scheme:
-                urlParts = urlparse.urlparse(basepath)
+            if basepath and not urllib.parse.urlparse(uri).scheme:
+                urlParts = urllib.parse.urlparse(basepath)
             else:
-                urlParts = urlparse.urlparse(uri)
+                urlParts = urllib.parse.urlparse(uri)
 
             log.debug("URLParts: %r", urlParts)
 
             if urlParts.scheme == 'file':
                 if basepath and uri.startswith('/'):
-                    uri = urlparse.urljoin(basepath, uri[1:])
-                urlResponse = urllib2.urlopen(uri)
+                    uri = urllib.parse.urljoin(basepath, uri[1:])
+                urlResponse = urllib.request.urlopen(uri)
                 self.mimetype = urlResponse.info().get(
                     "Content-Type", '').split(";")[0]
                 self.uri = urlResponse.geturl()
@@ -567,17 +567,17 @@ class pisaFileObject:
 
                 # External data
                 if basepath:
-                    uri = urlparse.urljoin(basepath, uri)
+                    uri = urllib.parse.urljoin(basepath, uri)
 
                 #path = urlparse.urlsplit(url)[2]
                 #mimetype = getMimeType(path)
 
                 # Using HTTPLIB
-                server, path = urllib.splithost(uri[uri.find("//"):])
+                server, path = urllib.parse.splithost(uri[uri.find("//"):])
                 if uri.startswith("https://"):
-                    conn = httplib.HTTPSConnection(server)
+                    conn = http.client.HTTPSConnection(server)
                 else:
-                    conn = httplib.HTTPConnection(server)
+                    conn = http.client.HTTPConnection(server)
                 conn.request("GET", path)
                 r1 = conn.getresponse()
                 # log.debug("HTTP %r %r %r %r", server, path, uri, r1)
@@ -588,10 +588,10 @@ class pisaFileObject:
                     if r1.getheader("content-encoding") == "gzip":
                         import gzip
                         try:
-                            import cStringIO as io
+                            import io as io
                         except:
                             try:
-                                import StringIO as io
+                                import io as io
                             except ImportError:
                                 import io
 
@@ -601,8 +601,8 @@ class pisaFileObject:
                         self.file = r1
                 else:
                     try:
-                        urlResponse = urllib2.urlopen(uri)
-                    except urllib2.HTTPError:
+                        urlResponse = urllib.request.urlopen(uri)
+                    except urllib.error.HTTPError:
                         return
                     self.mimetype = urlResponse.info().get(
                         "Content-Type", '').split(";")[0]
